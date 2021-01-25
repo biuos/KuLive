@@ -5,12 +5,26 @@ import android.os.Bundle
 import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
+
+    private var mediaConfig: MediaConfig? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         // Example of a call to a native method
         findViewById<TextView>(R.id.sample_text).text = stringFromJNI()
+
+        mediaConfig = MediaConfig.Builder("rtmp://xxx")
+            .setAudio(
+                MediaConfig.AudioBuilder().build()
+            )
+            .setVideo(
+                MediaConfig.VideoBuilder().build()
+            ).build()
+
+        mediaConfig!!.audio.channelConfig
+
     }
 
     /**

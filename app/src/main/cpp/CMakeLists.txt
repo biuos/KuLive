@@ -22,7 +22,7 @@ add_library(
         librtmp/rtmp.c
         librtmp/rtmp_sys.h
 
-
+        RtmpClient_jni.cpp
         native-lib.cpp)
 
 
