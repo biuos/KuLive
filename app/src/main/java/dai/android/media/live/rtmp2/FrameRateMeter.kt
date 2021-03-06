@@ -1,4 +1,4 @@
-package dai.android.media.live.rtmp
+package dai.android.media.live.rtmp2
 
 class FrameRateMeter {
     private var times = 0

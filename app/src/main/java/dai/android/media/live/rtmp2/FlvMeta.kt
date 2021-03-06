@@ -1,4 +1,4 @@
-package dai.android.media.live.rtmp
+package dai.android.media.live.rtmp2
 
 import dai.android.media.live.MediaConfig
 import java.util.*

@@ -5,7 +5,7 @@
 #include <android/log.h>
 
 #ifndef NDK_LOG_TAG
-#define NDK_LOG_TAG "ndk-publish"
+    #define NDK_LOG_TAG "LIVE"
 #endif
 
 

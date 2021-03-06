@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">酷直播</string>
+    <string name="strScreenLiveStart">开始录屏直播</string>
+    <string name="strScreenLiveStop">结束录屏直播</string>
+</resources>

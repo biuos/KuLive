@@ -1,4 +1,4 @@
-package dai.android.media.live.rtmp
+package dai.android.media.live.rtmp2
 
 const val FLV_RTMP_PKT_TYPE_VIDEO = 9
 const val FLV_RTMP_PKT_TYPE_AUDIO = 8
