@@ -9,30 +9,56 @@ import android.media.projection.MediaProjection;
 import android.os.Bundle;
 import android.view.Surface;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import dai.android.media.live.Package;
+import dai.android.media.live.input.AbstractConfig;
+import dai.android.media.live.input.IEncodeData;
+import dai.android.media.live.input.VideoEncoder;
 import dai.android.media.live.output.AbstractLive;
-import dai.android.media.live.output.AudioPackage;
-import dai.android.media.live.output.Package;
-import dai.android.media.live.output.VideoPackage;
+import dai.android.media.live.output.OutAPackage;
+import dai.android.media.live.output.OutVPackage;
+
+import static dai.android.media.live.AVType.Audio;
+import static dai.android.media.live.AVType.Video;
 
 public class ScreenLive extends AbstractLive {
 
-    private final VideoCodec videoCodec;
+    //private final VideoCodec videoCodec;
+
+    private final ScreenEncode videoEncoder;
+
+    private final IEncodeData videoCallback = (startTime, bb, info) -> {
+        OutVPackage pkt = new OutVPackage();
+        pkt.setTimestamp(info.presentationTimeUs);
+        pkt.setBuffer(bb);
+        addPackage(pkt);
+    };
 
     public ScreenLive(String url, MediaProjection mp) {
         super(url);
 
-        videoCodec = new VideoCodec(this, mp);
+        videoEncoder = new ScreenEncode(mp);
+        videoEncoder.setCallback(videoCallback);
     }
 
     @Override
     protected void work() {
         rtmp.connect(true);
 
+        VideoEncoder.VideoConfig config = new VideoEncoder.VideoConfig();
+        config.setBitrate(150_000);
+        config.setFps(15);
+        config.setWidth(1080);
+        config.setHeight(1920);
+        config.setIFrameInterval(2);
+        videoEncoder.config(config);
+
         // start the codec
-        videoCodec.start();
+        videoEncoder.start();
 
         while (started) {
             Package pkt = null;
@@ -46,10 +72,10 @@ public class ScreenLive extends AbstractLive {
                 continue;
             }
 
-            if (pkt.getType() == Package.PacketType.Audio) {
-                writeAudioPackage((AudioPackage) pkt);
-            } else if (pkt.getType() == Package.PacketType.Video) {
-                writeVideoPackage((VideoPackage) pkt);
+            if (pkt.getType() == Audio) {
+                writeAudioPackage((OutAPackage) pkt);
+            } else if (pkt.getType() == Video) {
+                writeVideoPackage((OutVPackage) pkt);
             }
         }
     }
@@ -60,7 +86,7 @@ public class ScreenLive extends AbstractLive {
 
     @Override
     protected void subStop() {
-        videoCodec.stop();
+        videoEncoder.stop();
     }
 
     @Override
@@ -70,6 +96,44 @@ public class ScreenLive extends AbstractLive {
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // class
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    static class ScreenEncode extends VideoEncoder {
+        private final MediaProjection mediaProjection;
+        private VirtualDisplay virtualDisplay;
+
+        ScreenEncode(MediaProjection mp) {
+            mediaProjection = mp;
+        }
+
+        @Override
+        protected boolean hasInputPackage() {
+            return false;
+        }
+
+        @Override
+        public void config(@NotNull AbstractConfig config) {
+            super.config(config);
+
+            virtualDisplay = mediaProjection.createVirtualDisplay(
+                    "screen-codec",
+                    1080, 1920, 1,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                    getSurface(), null, null);
+
+        }
+
+        @Override
+        protected void runnable() {
+            super.runnable();
+
+            virtualDisplay.release();
+            virtualDisplay = null;
+
+            mediaProjection.stop();
+        }
+    }
+
+
     static class VideoCodec {
 
         private final ScreenLive screenLive;
@@ -105,13 +169,14 @@ public class ScreenLive extends AbstractLive {
                     byte[] outData = new byte[bufferInfo.size];
                     buffer.get(outData);
 
+
                     /// ByteBuffer sps = mediaCodec.getOutputFormat().getByteBuffer("csd-0");
                     /// ByteBuffer pps = mediaCodec.getOutputFormat().getByteBuffer("csd-1");
 
                     if (startTime == 0) {
                         startTime = bufferInfo.presentationTimeUs / 1000;
                     }
-                    VideoPackage pkt = new VideoPackage();
+                    OutVPackage pkt = new OutVPackage();
                     pkt.setBuffer(outData);
                     long tms = (bufferInfo.presentationTimeUs / 1000) - startTime;
                     pkt.setTimestamp(tms);
@@ -143,7 +208,7 @@ public class ScreenLive extends AbstractLive {
         }
 
         void start() {
-            MediaFormat format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, 540, 960);
+            MediaFormat format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, 680, 720);
             format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
             format.setInteger(MediaFormat.KEY_BIT_RATE, 400_000);
             format.setInteger(MediaFormat.KEY_FRAME_RATE, 15);
@@ -154,7 +219,7 @@ public class ScreenLive extends AbstractLive {
                 Surface surface = mediaCodec.createInputSurface();
                 virtualDisplay = mediaProjection.createVirtualDisplay(
                         "screen-codec",
-                        540, 960, 1,
+                        580, 720, 1,
                         DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                         surface, null, null);
 

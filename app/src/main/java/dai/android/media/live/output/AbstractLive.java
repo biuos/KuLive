@@ -2,6 +2,7 @@ package dai.android.media.live.output;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
+import dai.android.media.live.Package;
 import dai.android.media.live.rtmp.RtmpClient;
 
 public abstract class AbstractLive {
@@ -54,16 +55,13 @@ public abstract class AbstractLive {
     }
 
 
-    protected void writeAudioPackage(AudioPackage pkt) {
+    protected void writeAudioPackage(OutAPackage pkt) {
     }
 
-    protected void writeVideoPackage(VideoPackage pkt) {
-        if (null == pkt) return;
+    protected void writeVideoPackage(OutVPackage pkt) {
+        if (null == pkt)
+            return;
 
-        if (pkt.getPts() > 0) {
-            rtmp.videoH264WriteRawFrame(pkt.getBuffer(), pkt.getDts(), pkt.getPts());
-        } else {
-            rtmp.videoPacketWrite(pkt.getBuffer(), pkt.getTimestamp());
-        }
+        rtmp.writeH264data(pkt.getBuffer(), pkt.getTimestamp());
     }
 }
